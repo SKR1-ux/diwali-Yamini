@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"/>
+    <title>Yamini's Diwali Glow 🪔</title>
+    <style>
+        :root {
+            --gold: #ffd66b;
+            --warm: #ff9f3b;
+            --bg1: #06060a;
+            --bg2: #0f0920;
+            --glass: rgba(255,255,255,0.03);
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: Inter, "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial;
+        }
+        body {
+            background: radial-gradient(circle at 30% 80%, #1b1a2b 0%, #06060a 50%, #000 100%);
+            color: var(--gold);
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            gap: 10px;
+            text-align: center;
+            pointer-events: none;
+        }
+        .prompt {
+            background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            font-size: 1rem;
+            pointer-events: auto;
+            cursor: pointer;
+            user-select: none;
+            backdrop-filter: blur(6px) saturate(1.2);
+            max-width: 90%;
+        }
+        .sub {
+            color: #f5e7c3;
+            opacity: 0.9;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+        .diya-row {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 14px;
+            align-items: flex-end;
+            pointer-events: none;
+        }
+        .diya {
+            width: 50px;
+            height: 50px;
+            pointer-events: none;
+            transform-origin: center bottom;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+        }
+        .glow {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0.01);
+            left: 50%;
+            top: 50%;
+            pointer-events: none;
+            filter: blur(20px);
+            opacity: 0.7;
+        }
+        .final-msg {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+            border-radius: 10px;
+            padding: 12px 16px;
+            border: 1px solid rgba(255,255,255,0.04);
+            display: none;
+            max-width: 90%;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+            backdrop-filter: blur(6px);
+        }
+        .final-msg h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        .final-msg p {
+            margin: 6px 0 0;
+            color: #f6e9c1;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+        canvas#scene {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            touch-action: manipulation;
+        }
+        .hint {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #f9eacb;
+            opacity: 0.85;
+            font-size: 0.85rem;
+        }
+        .tiny {
+            font-size: 0.75rem;
+            color: #e9d8b5;
+            opacity: 0.85;
+        }
+        @media (max-width: 420px) {
+            .diya { width: 44px; height: 44px; }
+            .prompt { font-size: 0.95rem; padding: 10px 14px; }
+            .final-msg h2 { font-size: 1rem; }
+            .final-msg p { font-size: 0.85rem; }
+            .diya-row { gap: 12px; }
+        }
+        .floating {
+            animation: floaty 5s ease-in-out infinite;
+        }
+        @keyframes floaty {
+            0% { transform: translateX(-50%) translateY(0); }
+            50% { transform: translateX(-50%) translateY(-8px); }
+            100% { transform: translateX(-50%) translateY(0); }
+        }
+        .pulse {
+            animation: pulseGlow 1000ms ease-out 1;
+        }
+        @keyframes pulseGlow {
+            0% { transform: scale(0.95); filter: drop-shadow(0 0 0 rgba(255,214,107,0)); }
+            40% { transform: scale(1.02); filter: drop-shadow(0 15px 30px rgba(255,180,45,0.2)); }
+            100% { transform: scale(1); filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5)); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="scene"></canvas>
+    <div class="overlay" id="overlay">
+        <div class="prompt" id="prompt">Hey Yamini! Your vibe is pure magic 🪔<div class="sub">Tap to light your first diya</div></div>
+        <div class="hint tiny">Tip: Tap again for more lights & fireworks ✨</div>
+    </div>
+    <div class="final-msg" id="finalMsg">
+        <h2 id="finalTitle">Happy Diwali, Yamini! 🪔</h2>
+        <p id="finalBody">Your energy lights up every room. Wishing you a Diwali full of joy and smiles! — Suraj</p>
+    </div>
+    <div class="diya-row floating" id="diyaRow" aria-hidden="true"></div>
+    <audio id="bgMusic" loop preload="auto">
+        <source src="https://www.bensound.com/bensound-music/bensound-anewbeginning.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="launchSound" preload="auto" src="https://www.soundjay.com/misc/sounds/rocket-launch-01.mp3"></audio>
+    <audio id="burstSound" preload="auto" src="https://www.soundjay.com/misc/sounds/fireworks-1.mp3"></audio>
+    <audio id="popSound" preload="auto" src="https://www.soundjay.com/button/sounds/button-16.mp3"></audio>
+    <script>
+        const canvas = document.getElementById('scene');
+        const ctx = canvas.getContext('2d', { alpha: true });
+        let DPR = window.devicePixelRatio || 1;
+        function resize() {
+            DPR = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(window.innerWidth * DPR);
+            canvas.height = Math.floor(window.innerHeight * DPR);
+            canvas.style.width = window.innerWidth + 'px';
+            canvas.style.height = window.innerHeight + 'px';
+            ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        function makeDiyaEl() {
+            const xmlns = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(xmlns, "svg");
+            svg.setAttribute("viewBox", "0 0 120 120");
+            svg.setAttribute("class", "diya");
+            svg.innerHTML = `
+                <defs>
+                    <radialGradient id="g1" cx="50%" cy="30%" r="60%">
+                        <stop offset="0%" stop-color="#ffd88f"/>
+                        <stop offset="100%" stop-color="#ff9f3b"/>
+                    </radialGradient>
+                    <filter id="f1">
+                        <feGaussianBlur stdDeviation="3" result="b"/>
+                    </filter>
+                </defs>
+                <g transform="translate(0,6)">
+                    <ellipse cx="60" cy="84" rx="44" ry="16" fill="#2b2b2b" opacity="0.14"/>
+                    <path d="M16 72 Q60 20 104 72 Q84 84 36 84 Q16 80 16 72 Z" fill="#4a2b12"/>
+                    <path d="M28 62 Q60 34 92 62 Q78 72 42 72 Q28 70 28 62 Z" fill="#7c4b24"/>
+                    <ellipse cx="60" cy="52" rx="14" ry="26" fill="url(#g1)" />
+                    <path d="M60 20 Q56 32 60 38 Q64 32 60 20 Z" fill="#ffd77a" />
+                    <circle cx="60" cy="28" r="6" fill="#fff4d6" opacity="0.85"/>
+                </g>
+            `;
+            return svg;
+        }
+
+        const diyaRow = document.getElementById('diyaRow');
+        let totalDiyas = 0;
+        function addDiya(shine = false) {
+            const el = makeDiyaEl();
+            el.style.opacity = 0;
+            el.style.transform = 'translateY(10px)';
+            diyaRow.appendChild(el);
+            requestAnimationFrame(() => {
+                el.style.transition = 'all 400ms ease';
+                el.style.opacity = 1;
+                el.style.transform = 'translateY(0)';
+            });
+            totalDiyas++;
+            if (shine) lightDiya(el);
+            return el;
+        }
+
+        function lightDiya(svgEl) {
+            const glow = document.createElement('div');
+            glow.className = 'glow';
+            const rect = svgEl.getBoundingClientRect();
+            glow.style.left = (rect.left + rect.width / 2) + 'px';
+            glow.style.top = (rect.top + rect.height / 2 - 18) + 'px';
+            glow.style.background = 'radial-gradient(circle, rgba(255,214,107,0.85) 0%, rgba(255,150,40,0.2) 40%, rgba(255,200,110,0.05) 70%)';
+            document.body.appendChild(glow);
+            requestAnimationFrame(() => glow.style.transform = 'translate(-50%,-50%) scale(1)');
+            setTimeout(() => {
+                glow.style.transition = 'transform 700ms ease, opacity 800ms ease';
+                glow.style.opacity = 0;
+                glow.style.transform = 'translate(-50%,-50%) scale(0.9)';
+                setTimeout(() => glow.remove(), 900);
+            }, 800);
+        }
+
+        let particles = [];
+        let rockets = [];
+        function rand(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        function launchRocket(x, y) {
+            const r = {
+                x: x,
+                y: canvas.height / DPR + 10,
+                tx: x,
+                ty: y,
+                vx: rand(-0.6, 0.6),
+                vy: rand(-9, -11),
+                life: 0,
+                explodeAt: rand(0.3, 0.4),
+                color: `hsl(${rand(0, 360)}, 80%, ${rand(50, 60)}%)`,
+                size: rand(2, 3.5)
+            };
+            rockets.push(r);
+            try {
+                document.getElementById('launchSound').currentTime = 0;
+                document.getElementById('launchSound').play();
+            } catch (e) {}
+        }
+
+        function createSparks(x, y, color, count = 50) {
+            for (let i = 0; i < count; i++) {
+                const ang = rand(0, Math.PI * 2);
+                const speed = rand(1.5, 6);
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(ang) * speed * rand(0.6, 1.2),
+                    vy: Math.sin(ang) * speed * rand(0.6, 1.2),
+                    life: rand(40, 100),
+                    age: 0,
+                    color: color,
+                    size: rand(1.2, 3.5),
+                    gravity: 0.05 + Math.random() * 0.07
+                });
+            }
+            try {
+                const b = document.getElementById('burstSound');
+                b.currentTime = 0;
+                b.play();
+            } catch (e) {}
+        }
+
+        function frame() {
+            ctx.fillStyle = 'rgba(3,3,6,0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for (let i = rockets.length - 1; i >= 0; i--) {
+                const r = rockets[i];
+                r.x += r.vx;
+                r.y += r.vy;
+                r.vy += 0.13;
+                r.life += 0.01;
+                ctx.beginPath();
+                const grad = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, 18);
+                grad.addColorStop(0, r.color);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.globalAlpha = 0.9;
+                ctx.arc(r.x, r.y, r.size * 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 0.12;
+                ctx.fillStyle = r.color;
+                ctx.fillRect(r.x - r.vx * 7, r.y - r.vy * 7, Math.max(1, r.size * 3.5), 2);
+                if (r.life > r.explodeAt) {
+                    createSparks(r.x, r.y, r.color, Math.floor(rand(40, 100)));
+                    rockets.splice(i, 1);
+                }
+            }
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += p.gravity;
+                p.age++;
+                const lifeFrac = 1 - p.age / p.life;
+                if (lifeFrac <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.globalAlpha = Math.max(0, lifeFrac);
+                ctx.beginPath();
+                ctx.fillStyle = p.color;
+                ctx.arc(p.x, p.y, p.size * (1 + (1 - lifeFrac) * 0.6), 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 0.12 * lifeFrac;
+                ctx.fillRect(p.x - 0.5, p.y - 0.5, 2, 2);
+            }
+            ctx.globalAlpha = 1;
+            requestAnimationFrame(frame);
+        }
+        frame();
+
+        let tapCount = 0;
+        const overlay = document.getElementById('overlay');
+        const prompt = document.getElementById('prompt');
+        const bgMusic = document.getElementById('bgMusic');
+        const finalMsg = document.getElementById('finalMsg');
+
+        function firstTapEffects() {
+            try {
+                bgMusic.currentTime = 0;
+                bgMusic.volume = 0.4;
+                bgMusic.play();
+            } catch (e) {}
+            const d = addDiya(true);
+            prompt.innerHTML = 'Yamini, you make every moment brighter! <div class="sub">Tap again for more diyas</div>';
+            setTimeout(() => {
+                document.querySelector('.hint').style.opacity = 0;
+            }, 1000);
+        }
+
+        function secondTapEffects() {
+            const d1 = addDiya(true);
+            const d2 = addDiya(true);
+            prompt.innerHTML = 'Your smile sparks joy! Tap the sky for fireworks 🎆';
+        }
+
+        function thirdTapEffects() {
+            const w = window.innerWidth;
+            for (let i = 0; i < 7; i++) {
+                setTimeout(() => launchRocket(rand(50, w - 50), rand(70, window.innerHeight * 0.3)), i * 180);
+            }
+            prompt.innerHTML = 'Yamini, you’re a star! Final surprise coming up!';
+            setTimeout(() => revealFinalMessage(), 1500);
+        }
+
+        function revealFinalMessage() {
+            finalMsg.style.display = 'block';
+            finalMsg.classList.add('pulse');
+            prompt.style.opacity = 0;
+            setTimeout(() => prompt.style.display = 'none', 800);
+        }
+
+        function easterEgg() {
+            const egg = document.createElement('div');
+            egg.style.position = 'absolute';
+            egg.style.left = '50%';
+            egg.style.top = '20%';
+            egg.style.transform = 'translateX(-50%)';
+            egg.style.background = 'linear-gradient(90deg, rgba(255,244,200,0.06), rgba(255,244,200,0.02))';
+            egg.style.border = '1px solid rgba(255,255,255,0.04)';
+            egg.style.padding = '10px 14px';
+            egg.style.borderRadius = '12px';
+            egg.style.color = '#fff8e6';
+            egg.style.fontSize = '0.85rem';
+            egg.style.backdropFilter = 'blur(6px)';
+            egg.innerText = 'Yamini, your vibe makes this Diwali extra special 😊';
+            document.body.appendChild(egg);
+            setTimeout(() => egg.style.opacity = 0, 3000);
+            setTimeout(() => egg.remove(), 3800);
+        }
+
+        function handleTap(clientX, clientY) {
+            tapCount++;
+            if (tapCount === 1) {
+                firstTapEffects();
+                try {
+                    document.getElementById('popSound').currentTime = 0;
+                    document.getElementById('popSound').play();
+                } catch (e) {}
+                lightDiya(document.querySelector('.diya') || addDiya(true));
+            } else if (tapCount === 2) {
+                secondTapEffects();
+                try {
+                    document.getElementById('popSound').currentTime = 0;
+                    document.getElementById('popSound').play();
+                } catch (e) {}
+            } else if (tapCount === 3) {
+                thirdTapEffects();
+            } else {
+                const x = clientX || window.innerWidth * 0.5;
+                const y = Math.max(70, (clientY || window.innerHeight * 0.3));
+                launchRocket(x, y);
+                createSparks(x, y, `hsl(${rand(0, 360)}, 80%, 55%)`, 15);
+            }
+            if (tapCount === 5) easterEgg();
+        }
+
+        function onPointer(e) {
+            const x = (e.touches && e.touches[0]) ? e.touches[0].clientX : (e.clientX || window.innerWidth / 2);
+            const y = (e.touches && e.touches[0]) ? e.touches[0].clientY : (e.clientY || window.innerHeight / 2);
+            if (tapCount < 1) {
+                createSparks(x, y, 'hsl(45, 80%, 60%)', 12);
+            }
+            handleTap(x, y);
+            prompt.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-6px)' }, { transform: 'translateY(0)' }], { duration: 300, easing: 'ease-out' });
+        }
+
+        window.addEventListener('click', onPointer, { passive: true });
+        window.addEventListener('touchstart', onPointer, { passive: true });
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') onPointer({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
+        });
+
+        for (let i = 0; i < 3; i++) {
+            addDiya(false);
+        }
+    </script>
+</body>
+</html>             
